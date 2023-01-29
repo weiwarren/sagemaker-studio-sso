@@ -13,6 +13,7 @@ variable "stage_name" {
   type    = string
 }
 
+
 provider "aws" {
   region = "ap-southeast-2"
 }
@@ -145,3 +146,4 @@ output "api_endpoint" {
   value = aws_api_gateway_deployment.saml_gateway.invoke_url
 }
 
+#todo: add the saml2 app deployment in AWS identity center
