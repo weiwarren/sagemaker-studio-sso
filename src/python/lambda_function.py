@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 import urllib.parse
 import boto3
 import re
+import time
 # from aws_lambda_powertools import Logger
 
 
@@ -45,8 +46,13 @@ def lambda_handler(event, context):
             sagemaker.create_user_profile(DomainId=domain_id, UserProfileName=user_id)
    
         # Create a presigned URL for the user
+        # todo: cache the url for future
         url = sagemaker.create_presigned_domain_url(DomainId=domain_id, UserProfileName=user_id, ExpiresInSeconds=5)['AuthorizedUrl']
-
+        # if the url is generated for the first time, there is a slight delay before it is accessible
+        # otherwise there will be error on user-profile [userprofile] is not in InService
+        # there is no api to check whether it is accessible or not
+        # introducing timer here, can be improved with caching
+        time.sleep(3)
         # Return a redirect response to the presigned URL
         return {
             'statusCode': 302,
@@ -64,4 +70,4 @@ def lambda_handler(event, context):
         return {
             'statusCode': 500,
             'body': str(e)
-        }            
+        }
