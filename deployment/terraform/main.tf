@@ -22,7 +22,7 @@ provider "aws" {
 resource "aws_lambda_function" "ml_sm_studio_sso_lambda" {
   function_name = "ml_sm_studio_sso_lambda"
   filename      = "lambda.zip"
-  handler       = "lambda_function.lambda_handler"
+  handler       = "app.handler"
   role          = aws_iam_role.ml_sm_studio_sso_lambda_execution_role.arn
   runtime       = "python3.9"
   timeout       = 29

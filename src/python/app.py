@@ -9,7 +9,7 @@ import time
 
 # logger = Logger(level="DEBUG")
 
-def lambda_handler(event, context):
+def handler(event, context):
     try:
         # Decode and parse the SAML response
         response = urllib.parse.unquote(base64.b64decode(event['body']).decode('ascii'))
@@ -22,13 +22,14 @@ def lambda_handler(event, context):
         # Extract the domainid and username attributes
         domain_id = None
         user_id = None
-        # logger.debug(root.find(".//{urn:oasis:names:tc:SAML:2.0:assertion}Assertion").find("{urn:oasis:names:tc:SAML:2.0:assertion}AttributeStatement"))
+
         for attribute in root.find(".//{urn:oasis:names:tc:SAML:2.0:assertion}Assertion").find("{urn:oasis:names:tc:SAML:2.0:assertion}AttributeStatement").iter("{urn:oasis:names:tc:SAML:2.0:assertion}Attribute"):
             print("attr", attribute)
             if attribute.get('Name') == 'domainid':
                 domain_id = attribute.find(".//{urn:oasis:names:tc:SAML:2.0:assertion}AttributeValue").text
             elif attribute.get('Name') == 'username':
                 user_id = attribute.find(".//{urn:oasis:names:tc:SAML:2.0:assertion}AttributeValue").text
+        print(domain_id, user_id)
 
         # Validate that domain_id and user_id were extracted from the SAML response
         if domain_id is None:
@@ -39,20 +40,25 @@ def lambda_handler(event, context):
             # Create a SageMaker client
         sagemaker = boto3.client('sagemaker')
 
-        existing_user = sagemaker.describe_user_profile(DomainId=domain_id, UserProfileName=user_id)
+        existing_user = None
+        try:
+             existing_user = sagemaker.describe_user_profile(DomainId=domain_id, UserProfileName=user_id)
+        except:
+            print(user_id, " does not exist. will provision it next ...")
 
         if existing_user is None:
             # Create a user profile
             sagemaker.create_user_profile(DomainId=domain_id, UserProfileName=user_id)
-   
+
+        existing_user = sagemaker.describe_user_profile(DomainId=domain_id, UserProfileName=user_id)
+        
         # Create a presigned URL for the user
-        # todo: cache the url for future
-        url = sagemaker.create_presigned_domain_url(DomainId=domain_id, UserProfileName=user_id, ExpiresInSeconds=5)['AuthorizedUrl']
-        # if the url is generated for the first time, there is a slight delay before it is accessible
-        # otherwise there will be error on user-profile [userprofile] is not in InService
-        # there is no api to check whether it is accessible or not
-        # introducing timer here, can be improved with caching
-        time.sleep(3)
+        url = sagemaker.create_presigned_domain_url(DomainId=domain_id, UserProfileName=user_id, ExpiresInSeconds=30)['AuthorizedUrl']
+
+        # sagemaker presigned domain url is not immediately available to access after generated, added timer to avoid errors
+        # browser refresh would fix this issue too
+        time.sleep(5)
+
         # Return a redirect response to the presigned URL
         return {
             'statusCode': 302,
@@ -62,11 +68,13 @@ def lambda_handler(event, context):
             'body': ''
         }
     except ValueError as e:
+        print(str(e))
         return {
             'statusCode': 400,
             'body': str(e)
         }
     except Exception as e:
+        print(str(e))
         return {
             'statusCode': 500,
             'body': str(e)
