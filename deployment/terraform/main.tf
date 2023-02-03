@@ -25,6 +25,12 @@ resource "aws_lambda_function" "ml_sm_studio_sso_lambda" {
   handler       = "app.handler"
   role          = aws_iam_role.ml_sm_studio_sso_lambda_execution_role.arn
   runtime       = "python3.9"
+  environment = {
+    variables = {
+      SAML_DOMAIN_FIELD = "domainid"
+      SAML_USER_FIELD = "username"
+    }
+  }
   timeout       = 29
 }
 

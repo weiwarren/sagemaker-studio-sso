@@ -1,6 +1,7 @@
 import base64
 import xml.etree.ElementTree as ET
 import urllib.parse
+import os
 import boto3
 import re
 import time
@@ -8,6 +9,12 @@ import time
 
 
 # logger = Logger(level="DEBUG")
+
+# domainid field name (optional)
+attr_domain_id =  os.environ.get('SAML_DOMAIN_FIELD', "domainid")
+
+# saml username attribute to map to sagemaker profile name
+attr_user_name = os.environ.get('SAML_USER_FIELD', "username")
 
 def handler(event, context):
     try:
@@ -25,9 +32,9 @@ def handler(event, context):
 
         for attribute in root.find(".//{urn:oasis:names:tc:SAML:2.0:assertion}Assertion").find("{urn:oasis:names:tc:SAML:2.0:assertion}AttributeStatement").iter("{urn:oasis:names:tc:SAML:2.0:assertion}Attribute"):
             print("attr", attribute)
-            if attribute.get('Name') == 'domainid':
+            if attribute.get('Name') == attr_domain_id:
                 domain_id = attribute.find(".//{urn:oasis:names:tc:SAML:2.0:assertion}AttributeValue").text
-            elif attribute.get('Name') == 'username':
+            elif attribute.get('Name') == attr_user_name:
                 user_id = attribute.find(".//{urn:oasis:names:tc:SAML:2.0:assertion}AttributeValue").text
         print(domain_id, user_id)
 

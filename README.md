@@ -1,9 +1,14 @@
 # Sagemaker Studio Single Sign-On Automation
 
 This repository contains the code for automating the single sign-on process for Sagemaker Studio using Terraform and a Lambda function.
+
+![alt text](https://github.com/weiwarren/sagemaker-studio-sso/blob/master/architecture.png?raw=true)
+
+
 ```
 AWS SSO => IDP (tested against Okta, auth0, and AWS SSO) => API Gateway => Lambda => Sagemaker Studio nodebook
 ```
+User authenticate throug to AWS SSO dashboard, clicking the saml 2.0 custom icon will trigger request to lambda function via API gateway to check and provision user profile associated with the configured field. Then function then generates a presigned url, before sending 302 redirect with the url to the user.
 
 ## Terraform Code
 The Terraform code in this repository is used to deploy an API Gateway and a Lambda function to handle the single sign-on process. The API Gateway is configured to accept a username as a parameter and the Lambda function is responsible for provisioning a user profile in the Sagemaker Studio domain based on the provided username.
